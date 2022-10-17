@@ -19,43 +19,16 @@ namespace
     boost::asio::ssl::context &ctx,
     std::shared_ptr<const std::string> doc_root,
     const boost::asio::ip::address &address,
-    const uint16_t port,
-    Service::Router &router)
+    const uint16_t port)
   {
     auto endpoint = boost::asio::ip::tcp::endpoint(address, port);
     return std::make_shared<
-      Service::HTTPSListener>(ioc, ctx, endpoint, doc_root, router);
-  }
-}
-
-bool Service::Router::register_endpoint(
-  const boost::beast::string_view &endpoint,
-  std::unique_ptr<EndpointHandler> handler)
-{
-  bool ret = true;
-  if (router_.find(endpoint) != router_.end()) {
-    ret = false;
-  } else {
-    router_[endpoint] = std::move(handler);
-  }
-  return ret;
-}
-
-std::unique_ptr<EndpointHandler> &Service::Router::operator[](
-  const boost::beast::string_view &endpoint)
-{
-  std::unique_ptr<EndpointHandler> ret(nullptr);
-  if (router_.find(endpoint) == router_.end()) {
-    std::string err_msg = "No handler for " + std::string(endpoint) +
-      " was found.";
-    throw std::runtime_error(err_msg);
-  } else {
-    return router_[endpoint];
+      Service::HTTPSListener>(ioc, ctx, endpoint, doc_root);
   }
 }
 
 Service::Service(
-  const Service::ConnectionInfo& ci) :
+  const Service::ConnectionInfo &ci) :
   ioc_(ci.threads_),
   ctx_(boost::asio::ssl::context::tlsv12)
 {
@@ -64,12 +37,8 @@ Service::Service(
   auto const address = boost::asio::ip::make_address(ci.address_);
   auto const port = static_cast<uint16_t>(ci.port_);
 
-  std::unique_ptr<EndpointHandler> doc_root_handler(
-    new DocRootEndpoint(ci.doc_root_));
-  router_.register_endpoint("/index.html", std::move(doc_root_handler));
-
   auto sig_handler = [&](
-    const boost::system::error_code& ec, int signum) {
+    const boost::system::error_code &ec, int signum) {
       std::cerr << ec.message() << std::endl;
       exit(signum);
     };
@@ -77,7 +46,7 @@ Service::Service(
   signals.async_wait(sig_handler);
 
   std::shared_ptr<HTTPSListener> listener = make_https_listener(
-    ioc_, ctx_, doc_root, address, port, router_);
+    ioc_, ctx_, doc_root, address, port);
   std::vector<std::thread> v;
   v.reserve(ci.threads_ - 1);
   for (auto i = v.size(); i > 0; --i) {
@@ -94,19 +63,16 @@ Service::Service(
   }
 }
 
-
 Service::HTTPSListener::HTTPSListener(
-  boost::asio::io_context& ioc,
-  boost::asio::ssl::context& ctx,
-  boost::asio::ip::tcp::endpoint& endpoint,
-  std::shared_ptr<const std::string>& doc_root,
-  Router& router) :
+  boost::asio::io_context &ioc,
+  boost::asio::ssl::context &ctx,
+  boost::asio::ip::tcp::endpoint &endpoint,
+  std::shared_ptr<const std::string> &doc_root) :
   ioc_(ioc),
   ctx_(ctx),
   acceptor_(ioc),
   endpoint_(endpoint),
-  doc_root_(doc_root),
-  router_(router)
+  doc_root_(doc_root)
 {
   create_acceptor();
 }
@@ -145,7 +111,7 @@ void Service::HTTPSListener::on_accept(
     socket.set_option(boost::asio::socket_base::keep_alive(true), ec);
     if (not ec) {
       std::make_shared<HTTPSSession>(
-        std::move(socket), ctx_, doc_root_, *this, router_)->run();
+        std::move(socket), ctx_, doc_root_, *this)->run();
     } else {
       std::cerr << "Failed to keep socket alive." << std::endl;
     }

@@ -5,7 +5,6 @@ set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 
 set(SRC
-  ./endpoints.cxx
   ./https_session.cxx
   ./main.cxx
   ./service.cxx

@@ -1,7 +1,6 @@
 #ifndef SERVICE_H_INCLUDED
 #define SERVICE_H_INCLUDED
 
-#include "endpoints.h"
 #include "service_helpers.h"
 
 #include <boost/asio/connect.hpp>
@@ -30,21 +29,6 @@ public:
     std::string pem_;
   };
 
-  struct Router
-  {
-  public:
-    bool register_endpoint(const boost::beast::string_view &endpoint,
-      std::unique_ptr<EndpointHandler> handler);
-
-    std::unique_ptr<EndpointHandler>& operator[](
-      const boost::beast::string_view &endpoint);
-
-  private:
-    std::unordered_map<
-      boost::beast::string_view,
-      std::unique_ptr<EndpointHandler>> router_;
-  };
-
   class HTTPSListener :
     public std::enable_shared_from_this<HTTPSListener>
   {
@@ -53,8 +37,7 @@ public:
       boost::asio::io_context &ioc,
       boost::asio::ssl::context &ctx,
       boost::asio::ip::tcp::endpoint &endpoint,
-      std::shared_ptr<const std::string> &doc_root,
-      Router &router_);
+      std::shared_ptr<const std::string> &doc_root);
 
     ~HTTPSListener();
 
@@ -66,17 +49,16 @@ public:
     void do_accept();
 
     void on_accept(boost::beast::error_code ec,
-                   boost::asio::ip::tcp::socket socket);
+      boost::asio::ip::tcp::socket socket);
 
     void create_acceptor();
 
   private:
-    boost::asio::io_context& ioc_;
-    boost::asio::ssl::context& ctx_;
+    boost::asio::io_context &ioc_;
+    boost::asio::ssl::context &ctx_;
     boost::asio::ip::tcp::acceptor acceptor_;
     boost::asio::ip::tcp::endpoint endpoint_;
     std::shared_ptr<const std::string> doc_root_;
-    Router& router_;
   };
 
 public:
@@ -88,6 +70,5 @@ public:
 private:
   boost::asio::io_context ioc_;
   boost::asio::ssl::context ctx_;
-  Router router_;
 };
 #endif

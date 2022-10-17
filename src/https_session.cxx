@@ -17,10 +17,9 @@ HTTPSSession::SessionResponder::SessionResponder(HTTPSSession &self) :
   self_(self)
 {}
 
-void HTTPSSession::SessionResponder::send(
-  Responder::StringMessageType&& msg)
+void HTTPSSession::SessionResponder::send(StringMessageType&& msg)
 {
-  auto sp = std::make_shared<Responder::StringMessageType>(std::move(msg));
+  auto sp = std::make_shared<StringMessageType>(std::move(msg));
   self_.res_ = sp;
   boost::beast::http::async_write(
     self_.stream_,
@@ -31,10 +30,9 @@ void HTTPSSession::SessionResponder::send(
       sp->need_eof()));
 }
 
-void HTTPSSession::SessionResponder::send(
-  Responder::EmptyMessageType&& msg)
+void HTTPSSession::SessionResponder::send(EmptyMessageType&& msg)
 {
-  auto sp = std::make_shared<Responder::EmptyMessageType>(std::move(msg));
+  auto sp = std::make_shared<EmptyMessageType>(std::move(msg));
   self_.res_ = sp;
   boost::beast::http::async_write(
     self_.stream_,
@@ -49,13 +47,11 @@ HTTPSSession::HTTPSSession(
   boost::asio::ip::tcp::socket &&socket,
   boost::asio::ssl::context &ctx,
   std::shared_ptr<const std::string> doc_root,
-  Service::HTTPSListener &owner,
-  Service::Router &router) :
+  Service::HTTPSListener &owner) :
   stream_(std::move(socket), ctx),
   doc_root_(std::move(std::move(doc_root))),
   responder_(new SessionResponder(*this)),
-  owner_(owner),
-  router_(router)
+  owner_(owner)
 {}
 
 void HTTPSSession::run()
@@ -68,8 +64,7 @@ void HTTPSSession::run()
 
 void HTTPSSession::on_run()
 {
-  boost::beast::get_lowest_layer(stream_);//.expires_after(
-    //std::chrono::seconds(30));
+  boost::beast::get_lowest_layer(stream_);
   stream_.async_handshake(
     boost::asio::ssl::stream_base::server,
     boost::beast::bind_front_handler(
@@ -90,8 +85,7 @@ void HTTPSSession::on_handshake(boost::beast::error_code ec)
 void HTTPSSession::do_read()
 {
   req_ = {};
-  boost::beast::get_lowest_layer(stream_);//.expires_after(
-    //std::chrono::seconds(120));
+  boost::beast::get_lowest_layer(stream_);
   boost::beast::http::async_read(stream_, buffer_, req_,
     boost::beast::bind_front_handler(
       &HTTPSSession::on_read, shared_from_this()));
@@ -110,24 +104,68 @@ void HTTPSSession::on_read(
       std::endl;
   } else {
     try {
-      auto& handler_ptr = router_[req_.target()];
-      if (not handler_ptr) {
-        throw std::runtime_error("Failed to handle " +
-          std::string(req_.target()));
-      } else {
-        EndpointHandler& handler = *(router_[req_.target()]);
-        bool status = handler(std::move(req_), std::move(responder_));
-        if (not status) {
-          responder_->send(server_error_handler("Internal Server error",
-            req_));
-        }
-      }
+      
     } catch (std::runtime_error& rte) {
       std::cerr << "Failed to handle " << req_.target() << "with: " <<
           rte.what() << std::endl;;
       responder_->send(not_found_handler(req_.target(), req_));
     }
   }
+}
+
+bool HTTPSSession::handle_request(SessionResponder::StringRequestType &&req)
+{
+  SessionResponder::StringMessageType response;
+  if (req.method() != boost::beast::http::verb::get &&
+  req.method() != boost::beast::http::verb::head) {
+    response = bad_request_handler("Unknown HTTP-method\n", req);
+  } else if (req.target().empty() || req.target()[0] != '/' ||
+    static_cast<long>(req.target().find("..")) !=
+    static_cast<long>(boost::beast::string_view::npos)) {
+    response = bad_request_handler("Illegal request-target\n", req);
+  } else {
+    std::string path = path_cat(*doc_root_, req.target());
+    boost::beast::error_code ec;
+    boost::beast::http::file_body::value_type body;
+    body.open(path.c_str(), boost::beast::file_mode::scan, ec);
+    if (ec == boost::beast::errc::no_such_file_or_directory) {
+      response = not_found_handler(req.target(), req);
+    } else if (ec) {
+      response = server_error_handler(ec.message(), req);
+    } else {
+      const std::size_t body_size = body.size();
+      if (req.method() == boost::beast::http::verb::head) {
+        boost::beast::http::response<boost::beast::http::empty_body> res(
+          boost::beast::http::status::ok, req.version());
+        res.set(boost::beast::http::field::server,
+          BOOST_BEAST_VERSION_STRING);
+        res.set(boost::beast::http::field::content_type,
+          mime_type(path));
+        res.content_length(body_size);
+        res.keep_alive(req.keep_alive());
+        responder_->send(std::move(res));
+        return true;
+      } else if (req.method() == boost::beast::http::verb::get) {
+        std::string body_str;
+        body_str.resize(body.size());
+        boost::beast::error_code read_ec;
+        body.file().read(&body_str[0], body.size(), read_ec);
+        if (not read_ec) {
+          response = boost::beast::http::response<
+            boost::beast::http::string_body>(
+              std::piecewise_construct,
+              std::make_tuple(std::move(body_str)),
+              std::make_tuple(boost::beast::http::status::ok,
+                req.version()));
+        } else {
+          std::cerr << "Could not read body!" << std::endl;
+          response = server_error_handler(ec.message(), req);
+        }
+      }
+    }
+  }
+  responder_->send(std::move(response));
+  return true;
 }
 
 void HTTPSSession::do_close()
