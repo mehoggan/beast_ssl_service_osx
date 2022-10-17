@@ -78,6 +78,8 @@ void HTTPSSession::on_handshake(boost::beast::error_code ec)
     std::cerr << "Failed to handshake with: " << ec.message() << std::endl;
     do_close();
   } else {
+    std::cout << "Handshake successful going to read from socket."
+      << std::endl;
     do_read();
   }
 }
@@ -86,6 +88,7 @@ void HTTPSSession::do_read()
 {
   req_ = {};
   boost::beast::get_lowest_layer(stream_);
+  std::cout << "Going to async read..." << std::endl;
   boost::beast::http::async_read(stream_, buffer_, req_,
     boost::beast::bind_front_handler(
       &HTTPSSession::on_read, shared_from_this()));
@@ -96,7 +99,7 @@ void HTTPSSession::on_read(
   std::size_t bytes_transferred)
 {
   boost::ignore_unused(bytes_transferred);
-
+  std::cout << "Async read handler called." << std::endl;
   if (ec == boost::beast::http::error::end_of_stream) {
     do_close();
   } else if (ec) {
@@ -104,7 +107,8 @@ void HTTPSSession::on_read(
       std::endl;
   } else {
     try {
-      
+      std::cout << "Going to handle_request..." << std::endl;
+      handle_request(std::move(req_));
     } catch (std::runtime_error& rte) {
       std::cerr << "Failed to handle " << req_.target() << "with: " <<
           rte.what() << std::endl;;

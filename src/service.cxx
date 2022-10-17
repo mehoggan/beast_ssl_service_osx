@@ -105,11 +105,15 @@ void Service::HTTPSListener::on_accept(
   boost::beast::error_code ec,
   boost::asio::ip::tcp::socket socket)
 {
+  std::cout << "Accepting connection on socket in HTTPSListener..."
+    << std::endl;
   if (ec) {
     std::cerr << ec.message() << std::endl;
   } else {
+    std::cout << "Telling socket to keep alive..." << std::endl;
     socket.set_option(boost::asio::socket_base::keep_alive(true), ec);
     if (not ec) {
+      std::cout << "Creating HTTPSSession..." << std::endl;
       std::make_shared<HTTPSSession>(
         std::move(socket), ctx_, doc_root_, *this)->run();
     } else {
@@ -155,4 +159,5 @@ void Service::HTTPSListener::create_acceptor()
       ec.message() << std::endl;
     throw boost::beast::system_error(ec);
   }
+  std::cout << "Done creating connection accpetor." << std::endl;
 }
