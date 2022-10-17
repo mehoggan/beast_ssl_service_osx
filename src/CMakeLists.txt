@@ -5,10 +5,11 @@ set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 
 set(SRC
-  ./https_session.cxx
+  # ./https_session.cxx
   ./main.cxx
-  ./service.cxx
-  ./service_helpers.cxx)
+  # ./service.cxx
+  ./service_helpers.cxx
+)
 
 add_executable(https_service ${SRC})
 
