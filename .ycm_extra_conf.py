@@ -33,6 +33,7 @@
 import os
 import ycm_core
 
+pwd = "/Users/matthew.hoggan/Devel/github/mehoggan/beast_service"
 flags = [
     '-x',
     'c++',
@@ -47,8 +48,8 @@ flags = [
     '-Dgtest_main_EXPORTS',
     '-I/Users/matthew.hoggan/Devel/sandbox/cpp/beast_service/src',
     '-I/include',
-    '-I/Users/matthew.hoggan/Devel/sandbox/cpp/beast_service/make_build/boostbeast/include',
-    '-I/Users/matthew.hoggan/Devel/sandbox/cpp/beast_service/make_build/openssl/include',
+    f'-I{pwd}/make_build/boostbeast/include',
+    f'-I{pwd}/make_build/openssl/include',
     '-W',
     '-Wall',
     '-Wcast-align',

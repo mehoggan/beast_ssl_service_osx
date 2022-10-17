@@ -3,6 +3,8 @@
 
 #include <boost/beast.hpp>
 
+#include <memory>
+
 struct Responder
 {
 public:
@@ -34,10 +36,10 @@ public:
   virtual ~EndpointHandler();
 
   virtual bool operator()(StringRequestType&& req,
-    std::unique_ptr<Responder>&& responder);
+    std::shared_ptr<Responder>& responder);
 
   virtual bool operator()(StringRequestType&& req,
-    std::unique_ptr<Responder>&& responder) const;
+    std::shared_ptr<Responder>&& responder) const;
 
 private:
   boost::beast::string_view endpoint_;
@@ -52,14 +54,14 @@ public:
   virtual ~DocRootEndpoint();
 
   bool operator()(StringRequestType&& req,
-    std::unique_ptr<Responder>&& responder) final;
+    std::shared_ptr<Responder>& responder) final;
 
   bool operator()(StringRequestType&& req,
-    std::unique_ptr<Responder>&& responder) const final;
+    std::shared_ptr<Responder>&& responder) const final;
 
 private:
-  bool handle_request(StringRequestType&& req,
-    std::unique_ptr<Responder>&& responder) const;
+  bool handle_request(StringRequestType &&req,
+    std::shared_ptr<Responder> &responder) const;
 
 private:
   boost::beast::string_view doc_root_;

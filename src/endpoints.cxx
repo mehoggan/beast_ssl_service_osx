@@ -18,18 +18,18 @@ EndpointHandler::EndpointHandler(
 {}
 
 bool EndpointHandler::operator()(StringRequestType&& req,
-  std::unique_ptr<Responder>&& Responder)
+  std::shared_ptr<Responder>& responder)
 {
   (void) req;
-  (void) Responder;
+  (void) responder;
   return false;
 }
 
 bool EndpointHandler::operator()(StringRequestType&& req,
-  std::unique_ptr<Responder>&& Responder) const
+  std::shared_ptr<Responder>&& responder) const
 {
   (void) req;
-  (void) Responder;
+  (void) responder;
   return false;
 }
 
@@ -44,19 +44,19 @@ DocRootEndpoint::~DocRootEndpoint()
 
 bool DocRootEndpoint::operator()(
   EndpointHandler::StringRequestType&& req,
-  std::unique_ptr<Responder>&& Responder)
+  std::shared_ptr<Responder>& responder)
 {
-  return handle_request(std::move(req), std::move(Responder));
+  return handle_request(std::move(req), responder);
 }
 
 bool DocRootEndpoint::operator()(StringRequestType&& req,
-  std::unique_ptr<Responder>&& Responder) const
+  std::shared_ptr<Responder>&& responder) const
 {
-  return handle_request(std::move(req), std::move(Responder));
+  return handle_request(std::move(req), responder);
 }
 
-bool DocRootEndpoint::handle_request(StringRequestType&& req,
-  std::unique_ptr<Responder>&& responder) const
+bool DocRootEndpoint::handle_request(StringRequestType &&req,
+  std::shared_ptr<Responder> &responder) const
 {
   Responder::StringMessageType response;
   if (req.method() != boost::beast::http::verb::get &&
