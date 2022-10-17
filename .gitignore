@@ -1,2 +1,3 @@
-**/build
+**/make_build
 **/.idea
+**/cmake_build

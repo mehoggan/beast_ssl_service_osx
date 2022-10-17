@@ -1,12 +1,16 @@
 BUILD_DIR=${1}
 CONFIG_MODE=${2}
+SUB_FOLDER=${3}
 
 echo "Going to configure openssl in ${BUILD_DIR}..."
+echo "In SUB_FOLDER=\"${SUB_FOLDER}\"."
 
 if [[ "${CONFIG_MODE}" -eq "Release" ]];
 then
   echo "Going to configure openssl in ${CONFIG_MODE} mode..."
-  cd ${BUILD_DIR}/openssl && \
+  cd ${BUILD_DIR}/${SUB_FOLDER} && \
+    echo ${PWD} && \
+    ls -l ${PWD} && \
     export CC="/usr/bin/clang" && \
     export AR="/usr/bin/ar" && \
     export RANLIB="/usr/bin/ranlib" && \
@@ -20,7 +24,9 @@ then
       --openssldir=${BUILD_DIR}/openssl
 else
   echo "Going to configure openssl in ${CONFIG_MODE} mode..."
-  cd ${BUILD_DIR}/openssl && \
+  cd ${BUILD_DIR}/${SUB_FOLDER} && \
+    echo ${PWD} && \
+    ls -l ${PWD} && \
     export CC="/usr/bin/clang" && \
     export AR="/usr/bin/ar" && \
     export RANLIB="/usr/bin/ranlib" && \

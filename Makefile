@@ -1,15 +1,19 @@
-OUTDIR = "./build"
+OUTDIR = "./make_build"
 EXEPATH := $(OUTDIR)/https_service/bin/https_service
 
-all:
+all: deps
 	make all -C ./src
 .PHONY: all
+
+just_bin:
+	make just_bin -C ./src
+.PHONY: just_bin
 
 clean:
 	make clean -C ./src
 .PHONY: clean
 
-run:
+run: all
 	make run -C ./src
 .PHONY: run
 

@@ -1,9 +1,10 @@
 BUILD_DIR=${1}
 OPENSSL_REPO=${2}
+SUB_FOLDER=${3}
 
 echo "Going to clone openssl to ${BUILD_DIR}..."
 
-git clone --recursive ${OPENSSL_REPO} ${BUILD_DIR}/openssl
+git clone --recursive ${OPENSSL_REPO} ${BUILD_DIR}/${SUB_FOLDER}
 
 submodules=(
   'gost-engine_b2b4d629f100eaee9f5942a106b1ccefe85b8808'
@@ -19,7 +20,7 @@ function do_checkout {
   dir=${1}
   sha=${2}
   echo "Going to checkout ${sha} in ${dir}..."
-  pushd "${BUILD_DIR}/openssl/${dir}"
+  pushd "${BUILD_DIR}/${SUB_FOLDER}/${dir}"
   git checkout ${sha}
   popd
 }

@@ -1,9 +1,10 @@
 BUILD_DIR=${1}
 BOOSTBEAST_REPO=${2}
+SUB_FOLDER=${3}
 
 echo "Going to clone boostbeast to ${BUILD_DIR}..."
  
-git clone --recursive ${BOOSTBEAST_REPO} ${BUILD_DIR}/boostbeast
+git clone --recursive ${BOOSTBEAST_REPO} ${BUILD_DIR}/${SUB_FOLDER}
 
 submodules=(
   'libs/accumulators_4df0de9b47ef1415a7ccf0310250d6e15e132537'
@@ -171,7 +172,7 @@ function do_checkout {
   dir=${1}
   sha=${2}
   echo "Going to checkout ${sha} in ${dir}..."
-  pushd "${BUILD_DIR}/boostbeast/${dir}"
+  pushd "${BUILD_DIR}/${SUB_FOLDER}/${dir}"
   git checkout ${sha}
   popd
 }
