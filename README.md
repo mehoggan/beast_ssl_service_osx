@@ -11,7 +11,13 @@ would halt the server after making a GET request on localhost. </br>
 To build for the first time:
 
 ```sh
-make deps all
+# To build with make.
+> make all
+
+# To build with cmake.
+> mkdir cmake_build && cd cmake_build
+> cmake ../
+> make
 ```
 
 ## Run
@@ -19,5 +25,9 @@ make deps all
 To run:
 
 ```sh
-./build/https_service/bin/https_service
+# Run executable built using make.
+./make_build/https_service/bin/https_service
+
+# Run executable built using cmake.
+./cmake_build/src/https_service
 ```
