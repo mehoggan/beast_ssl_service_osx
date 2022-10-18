@@ -206,7 +206,7 @@ handle_request(
 // Report a failure
 void fail(beast::error_code ec, char const* what)
 {
-  // ssl::error::stream_truncated, also known as an SSL "short read",
+  // ssl::error::socket_truncated, also known as an SSL "short read",
   // indicates the peer closed the connection without performing the
   // required closing handshake (for example, Google does this to
   // improve performance). Generally this can be a security issue,
@@ -233,7 +233,7 @@ void fail(beast::error_code ec, char const* what)
 // Handles an HTTP server connection
 class session : public std::enable_shared_from_this<session>
 {
-  beast::ssl_stream<beast::tcp_stream> stream_;
+  beast::ssl_stream<boost::asio::ip::tcp::socket> socket_;
   beast::flat_buffer buffer_;
   std::shared_ptr<std::string const> doc_root_;
   http::request<http::string_body> req_;
@@ -245,7 +245,7 @@ public:
     tcp::socket&& socket,
     ssl::context& ctx,
     std::shared_ptr<std::string const> const& doc_root)
-    : stream_(std::move(socket), ctx)
+    : socket_(std::move(socket), ctx)
     , doc_root_(doc_root)
   {
   }
@@ -259,7 +259,7 @@ public:
     // for single-threaded contexts, this example code is written to be
     // thread-safe by default.
     net::dispatch(
-      stream_.get_executor(),
+      socket_.get_executor(),
       beast::bind_front_handler(
         &session::on_run,
         shared_from_this()));
@@ -269,11 +269,10 @@ public:
   on_run()
   {
     // Set the timeout.
-    beast::get_lowest_layer(stream_).expires_after(
-      std::chrono::seconds(30));
+    beast::get_lowest_layer(socket_);
 
     // Perform the SSL handshake
-    stream_.async_handshake(
+    socket_.async_handshake(
       ssl::stream_base::server,
       beast::bind_front_handler(
         &session::on_handshake,
@@ -297,10 +296,10 @@ public:
     req_ = {};
 
     // Set the timeout.
-    beast::get_lowest_layer(stream_).expires_after(std::chrono::seconds(30));
+    beast::get_lowest_layer(socket_);
 
     // Read a request
-    http::async_read(stream_, buffer_, req_,
+    http::async_read(socket_, buffer_, req_,
       beast::bind_front_handler(
         &session::on_read,
         shared_from_this()));
@@ -331,7 +330,7 @@ public:
 
     // Write the response
     beast::async_write(
-      stream_,
+      socket_,
       std::move(msg),
       beast::bind_front_handler(
         &session::on_write,
@@ -365,10 +364,10 @@ public:
   do_close()
   {
     // Set the timeout.
-    beast::get_lowest_layer(stream_).expires_after(std::chrono::seconds(30));
+    beast::get_lowest_layer(socket_);
 
     // Perform the SSL shutdown
-    stream_.async_shutdown(
+    socket_.async_shutdown(
       beast::bind_front_handler(
         &session::on_shutdown,
         shared_from_this()));
